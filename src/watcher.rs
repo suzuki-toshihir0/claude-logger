@@ -11,7 +11,7 @@ use tokio::time::{Duration, sleep};
 use crate::formatter::LogFormatter;
 use crate::parser::LogParser;
 use crate::webhook::WebhookSender;
-use crate::{WebhookFormat};
+use crate::WebhookFormat;
 use url::Url;
 
 pub struct LogWatcher {
@@ -51,7 +51,7 @@ impl LogWatcher {
                     println!("Webhook configured successfully");
                 }
                 Err(e) => {
-                    eprintln!("Failed to configure webhook: {}", e);
+                    eprintln!("Failed to configure webhook: {e}");
                 }
             }
         }
@@ -231,7 +231,7 @@ impl LogWatcher {
                 // Send to webhook if configured
                 if let Some(ref webhook) = self.webhook_sender {
                     if let Err(e) = webhook.send_message(&message, &formatted).await {
-                        eprintln!("Failed to send webhook: {}", e);
+                        eprintln!("Failed to send webhook: {e}");
                     }
                 }
             }
