@@ -8,10 +8,10 @@ use std::time::SystemTime;
 use tokio::sync::mpsc as tokio_mpsc;
 use tokio::time::{Duration, sleep};
 
+use crate::WebhookFormat;
 use crate::formatter::LogFormatter;
 use crate::parser::LogParser;
 use crate::webhook::WebhookSender;
-use crate::WebhookFormat;
 use url::Url;
 
 pub struct LogWatcher {
