@@ -189,12 +189,17 @@ impl LogParser {
             .ok()
             .map(BufReader::new)
             .and_then(|reader| {
-                reader.lines()
+                reader
+                    .lines()
                     .take(10)
                     .filter_map(|line| line.ok())
                     .filter_map(|line| serde_json::from_str::<CwdEntry>(&line).ok())
                     .filter_map(|entry| entry.cwd)
-                    .filter_map(|cwd| Path::new(&cwd).file_name().and_then(|name| name.to_str().map(String::from)))
+                    .filter_map(|cwd| {
+                        Path::new(&cwd)
+                            .file_name()
+                            .and_then(|name| name.to_str().map(String::from))
+                    })
                     .next()
             });
 
