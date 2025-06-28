@@ -1,11 +1,11 @@
 use anyhow::{Context, Result};
 use reqwest::Client;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::time::Duration;
 use url::Url;
 
-use crate::WebhookFormat;
 use crate::parser::LogMessage;
+use crate::WebhookFormat;
 
 pub struct WebhookSender {
     client: Client,

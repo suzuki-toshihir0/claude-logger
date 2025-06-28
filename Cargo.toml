@@ -1,7 +1,14 @@
 [package]
 name = "claude-logger"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
+authors = ["Toshihiro Suzuki"]
+description = "Real-time monitoring tool for Claude Code conversations with webhook support"
+repository = "https://github.com/suzuki-toshihir0/claude-logger"
+license = "MIT"
+readme = "README.md"
+keywords = ["claude", "monitoring", "logger", "webhook", "cli"]
+categories = ["command-line-utilities", "development-tools"]
 
 [dependencies]
 notify = "6.1"
