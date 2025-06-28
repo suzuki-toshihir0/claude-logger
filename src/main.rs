@@ -64,6 +64,10 @@ enum Commands {
         /// Webhook format: generic, slack, or discord
         #[arg(long, default_value = "generic")]
         webhook_format: WebhookFormat,
+
+        /// Include existing messages from log files
+        #[arg(long)]
+        include_existing: bool,
     },
     /// List available projects
     List,
@@ -81,10 +85,12 @@ async fn main() -> Result<()> {
             tool_display,
             webhook_url,
             webhook_format,
+            include_existing,
         } => {
             let mut watcher = LogWatcher::new()
                 .with_tool_display_mode(tool_display.clone())
-                .with_webhook(webhook_url.clone(), webhook_format.clone());
+                .with_webhook(webhook_url.clone(), webhook_format.clone())
+                .with_include_existing(*include_existing);
 
             if *all {
                 println!("Monitoring all projects...");

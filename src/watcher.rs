@@ -18,6 +18,7 @@ pub struct LogWatcher {
     parser: LogParser,
     formatter: LogFormatter,
     webhook_sender: Option<WebhookSender>,
+    include_existing: bool,
 }
 
 impl LogWatcher {
@@ -30,6 +31,7 @@ impl LogWatcher {
             parser: LogParser::new(),
             formatter: LogFormatter::new(),
             webhook_sender: None,
+            include_existing: false,
         }
     }
 
@@ -50,6 +52,11 @@ impl LogWatcher {
                 }
             }
         }
+        self
+    }
+
+    pub fn with_include_existing(mut self, include_existing: bool) -> Self {
+        self.include_existing = include_existing;
         self
     }
 
@@ -110,8 +117,10 @@ impl LogWatcher {
 
         watcher.watch(project_path, RecursiveMode::Recursive)?;
 
-        // Check existing files
-        self.process_existing_files(project_path).await?;
+        // Check existing files if include_existing is enabled
+        if self.include_existing {
+            self.process_existing_files(project_path).await?;
+        }
 
         println!("Started monitoring project {project_path:?}. Press Ctrl+C to exit.");
 
