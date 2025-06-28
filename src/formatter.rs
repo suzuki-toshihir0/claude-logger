@@ -280,6 +280,7 @@ mod tests {
             timestamp: Utc::now(),
             session_id: "test-session-12345".to_string(),
             uuid: "test-uuid".to_string(),
+            project_name: "test-project".to_string(),
             raw_content: None,
         }
     }

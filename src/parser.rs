@@ -13,6 +13,7 @@ pub struct LogMessage {
     pub timestamp: DateTime<Utc>,
     pub session_id: String,
     pub uuid: String,
+    pub project_name: String,
     pub raw_content: Option<Value>, // Store raw content for detailed tool parsing
 }
 
@@ -41,6 +42,11 @@ struct MessageContent {
     content: Value,
 }
 
+#[derive(Debug, Deserialize)]
+struct CwdEntry {
+    cwd: Option<String>,
+}
+
 pub struct LogParser {
     last_position: u64,
 }
@@ -52,6 +58,7 @@ impl LogParser {
 
     /// Parse entire file
     pub fn parse_file(&mut self, path: &Path) -> Result<Vec<LogMessage>> {
+        let project_name = self.extract_project_name(path);
         let mut file = File::open(path).with_context(|| format!("Cannot open file {path:?}"))?;
 
         // Read from the last position we read from
@@ -65,7 +72,8 @@ impl LogParser {
             let line = line?;
             current_position += line.len() as u64 + 1; // +1 for newline
 
-            if let Ok(message) = self.parse_line(&line) {
+            if let Ok(mut message) = self.parse_line(&line) {
+                message.project_name = project_name.clone();
                 messages.push(message);
             }
         }
@@ -118,6 +126,7 @@ impl LogParser {
             timestamp,
             session_id,
             uuid: raw.uuid,
+            project_name: String::new(), // Will be set by parse_file
             raw_content,
         })
     }
@@ -171,6 +180,32 @@ impl LogParser {
             }
             _ => Ok(format!("Message content: {content:?}")),
         }
+    }
+
+    /// Extract project name from file path
+    fn extract_project_name(&self, path: &Path) -> String {
+        // Try to extract project name from cwd field in JSONL file
+        let project_name = File::open(path)
+            .ok()
+            .map(BufReader::new)
+            .and_then(|reader| {
+                reader.lines()
+                    .take(10)
+                    .filter_map(|line| line.ok())
+                    .filter_map(|line| serde_json::from_str::<CwdEntry>(&line).ok())
+                    .filter_map(|entry| entry.cwd)
+                    .filter_map(|cwd| Path::new(&cwd).file_name().and_then(|name| name.to_str().map(String::from)))
+                    .next()
+            });
+
+        project_name.unwrap_or_else(|| {
+            // Fallback to directory name
+            path.parent()
+                .and_then(|p| p.file_name())
+                .and_then(|name| name.to_str())
+                .unwrap_or("unknown")
+                .to_string()
+        })
     }
 
     /// Reset position (reload entire file)
