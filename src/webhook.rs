@@ -54,7 +54,6 @@ impl WebhookSender {
         match self.format {
             WebhookFormat::Generic => self.format_generic(message, formatted_content),
             WebhookFormat::Slack => self.format_slack(message, formatted_content),
-            WebhookFormat::Discord => self.format_discord(message, formatted_content),
         }
     }
 
@@ -99,31 +98,6 @@ impl WebhookSender {
         }))
     }
 
-    /// Discord webhook format
-    fn format_discord(&self, message: &LogMessage, formatted_content: &str) -> Result<Value> {
-        let role_name = match message.role {
-            crate::parser::MessageRole::User => "User",
-            crate::parser::MessageRole::Assistant => "Claude",
-            crate::parser::MessageRole::System => "System",
-        };
-
-        let color = match message.role {
-            crate::parser::MessageRole::User => 0x0099ff,     // Blue
-            crate::parser::MessageRole::Assistant => 0x00ff99, // Green
-            crate::parser::MessageRole::System => 0xff9900,    // Orange
-        };
-
-        Ok(json!({
-            "embeds": [
-                {
-                    "title": role_name,
-                    "description": formatted_content,
-                    "color": color,
-                    "timestamp": message.timestamp.to_rfc3339()
-                }
-            ]
-        }))
-    }
 }
 
 #[cfg(test)]
@@ -168,14 +142,4 @@ mod tests {
         assert!(result.get("blocks").is_some());
     }
 
-    #[test]
-    fn test_discord_format() {
-        let url = Url::parse("https://example.com/webhook").unwrap();
-        let sender = WebhookSender::new(url, WebhookFormat::Discord).unwrap();
-        let message = create_test_message();
-        
-        let result = sender.format_discord(&message, "Formatted content").unwrap();
-        
-        assert!(result.get("embeds").is_some());
-    }
 }

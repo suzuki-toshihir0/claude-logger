@@ -26,8 +26,6 @@ pub enum WebhookFormat {
     Generic,
     /// Slack webhook format
     Slack,
-    /// Discord webhook format
-    Discord,
 }
 
 #[derive(Parser)]
@@ -61,7 +59,7 @@ enum Commands {
         #[arg(long)]
         webhook_url: Option<Url>,
 
-        /// Webhook format: generic, slack, or discord
+        /// Webhook format: generic or slack
         #[arg(long, default_value = "generic")]
         webhook_format: WebhookFormat,
 
