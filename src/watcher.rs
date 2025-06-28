@@ -99,11 +99,22 @@ impl LogWatcher {
         for entry in entries {
             let entry = entry?;
             if entry.file_type()?.is_dir() {
-                let metadata = entry.metadata()?;
-                let modified = metadata.modified()?;
+                let project_path = entry.path();
 
-                if latest_project.is_none() || modified > latest_project.as_ref().unwrap().1 {
-                    latest_project = Some((entry.path(), modified));
+                // Find the most recently modified JSONL file in the project
+                if let Ok(files) = fs::read_dir(&project_path) {
+                    let latest_jsonl_time = files
+                        .filter_map(|f| f.ok())
+                        .filter(|f| f.path().extension().and_then(|s| s.to_str()) == Some("jsonl"))
+                        .filter_map(|f| f.metadata().ok().and_then(|m| m.modified().ok()))
+                        .max();
+
+                    if let Some(modified) = latest_jsonl_time {
+                        if latest_project.is_none() || modified > latest_project.as_ref().unwrap().1
+                        {
+                            latest_project = Some((project_path, modified));
+                        }
+                    }
                 }
             }
         }
