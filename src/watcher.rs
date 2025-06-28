@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use chrono::{DateTime, Utc};
 use notify::{Event, EventKind, RecursiveMode, Watcher, event::CreateKind};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -19,6 +20,7 @@ pub struct LogWatcher {
     formatter: LogFormatter,
     webhook_sender: Option<WebhookSender>,
     include_existing: bool,
+    startup_time: DateTime<Utc>,
 }
 
 impl LogWatcher {
@@ -32,6 +34,7 @@ impl LogWatcher {
             formatter: LogFormatter::new(),
             webhook_sender: None,
             include_existing: false,
+            startup_time: Utc::now(),
         }
     }
 
@@ -216,6 +219,11 @@ impl LogWatcher {
         let messages = self.parser.parse_file(path)?;
 
         for message in messages {
+            // Skip existing messages if include_existing is false
+            if !self.include_existing && message.timestamp < self.startup_time {
+                continue;
+            }
+
             let formatted = self.formatter.format_message(&message)?;
             if !formatted.trim().is_empty() {
                 println!("{formatted}");
