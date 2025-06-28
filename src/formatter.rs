@@ -17,16 +17,19 @@ impl LogFormatter {
         }
     }
 
+    #[allow(dead_code)]
     pub fn with_timestamp(mut self, show: bool) -> Self {
         self.show_timestamp = show;
         self
     }
 
+    #[allow(dead_code)]
     pub fn with_session_id(mut self, show: bool) -> Self {
         self.show_session_id = show;
         self
     }
 
+    #[allow(dead_code)]
     pub fn with_compact_mode(mut self, compact: bool) -> Self {
         self.compact_mode = compact;
         self
@@ -97,21 +100,25 @@ impl LogFormatter {
     }
 
     /// Display conversation separator
+    #[allow(dead_code)]
     pub fn format_separator(&self) -> String {
         "─".repeat(80)
     }
 
     /// Display session start
+    #[allow(dead_code)]
     pub fn format_session_start(&self, session_id: &str) -> String {
         format!("🚀 New session started: {}", &session_id[..8])
     }
 
     /// Display session end
+    #[allow(dead_code)]
     pub fn format_session_end(&self, session_id: &str) -> String {
         format!("🔚 Session ended: {}", &session_id[..8])
     }
 
     /// Display statistics
+    #[allow(dead_code)]
     pub fn format_stats(&self, user_messages: usize, assistant_messages: usize) -> String {
         format!(
             "📊 Statistics: {user_messages} user messages, {assistant_messages} Claude messages"

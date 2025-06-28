@@ -74,6 +74,7 @@ impl LogParser {
     }
 
     /// Get only new messages
+    #[allow(dead_code)]
     pub fn parse_new_messages(&mut self, path: &Path) -> Result<Vec<LogMessage>> {
         self.parse_file(path)
     }
@@ -170,6 +171,7 @@ impl LogParser {
     }
 
     /// Reset position (reload entire file)
+    #[allow(dead_code)]
     pub fn reset(&mut self) {
         self.last_position = 0;
     }
