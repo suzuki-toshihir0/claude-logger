@@ -69,11 +69,14 @@ impl WebhookSender {
     }
 
     /// Slack webhook format
-    fn format_slack(&self, _message: &LogMessage, formatted_content: &str) -> Result<Value> {
+    fn format_slack(&self, message: &LogMessage, formatted_content: &str) -> Result<Value> {
+        let session_short = &message.session_id[..8.min(message.session_id.len())];
+        let username = format!("Claude Code / {} | {}", message.project_name, session_short);
         let text = formatted_content.to_string();
 
         Ok(json!({
             "text": text,
+            "username": username,
             "blocks": [
                 {
                     "type": "section",
@@ -100,6 +103,7 @@ mod tests {
             timestamp: Utc::now(),
             session_id: "test-session-12345".to_string(),
             uuid: "test-uuid".to_string(),
+            project_name: "test-project".to_string(),
             raw_content: None,
         }
     }
