@@ -6,6 +6,8 @@
 
 Real-time monitoring tool for Claude Code conversations. Watches JSONL log files and streams formatted messages to stdout with optional webhook integration.
 
+![screenshot](img/screenshot.png)
+
 ## Features
 
 - 🔍 **Real-time monitoring** of Claude Code JSONL logs
