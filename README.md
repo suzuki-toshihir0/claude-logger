@@ -1,5 +1,7 @@
 # Claude Logger
 
+![Rust CI](https://github.com/suzuki-toshihir0/claude-logger/workflows/Rust%20CI/badge.svg)
+
 ***<span style="font-size: 140%">Work Out Loud with your Claude Code!</span>***
 
 Real-time monitoring tool for Claude Code conversations. Watches JSONL log files and streams formatted messages to stdout with optional webhook integration.
