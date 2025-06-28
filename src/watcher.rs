@@ -10,7 +10,7 @@ use tokio::time::{sleep, Duration};
 
 use crate::formatter::LogFormatter;
 use crate::parser::LogParser;
-use crate::webhook::WebhookSender;
+use crate::webhook::{WebhookResult, WebhookSender};
 use crate::WebhookFormat;
 use url::Url;
 
@@ -226,14 +226,21 @@ impl LogWatcher {
 
             let formatted = self.formatter.format_message(&message)?;
             if !formatted.trim().is_empty() {
-                println!("{formatted}");
-
-                // Send to webhook if configured
-                if let Some(ref webhook) = self.webhook_sender {
-                    if let Err(e) = webhook.send_message(&message, &formatted).await {
-                        eprintln!("Failed to send webhook: {e}");
+                // Send to webhook if configured and get result
+                let webhook_status = if let Some(ref webhook) = self.webhook_sender {
+                    match webhook.send_message(&message, &formatted).await {
+                        Ok(WebhookResult::Sent) => "",
+                        Ok(WebhookResult::Skipped) => " [webhook: skipped]",
+                        Err(e) => {
+                            eprintln!("Failed to send webhook: {e}");
+                            " [webhook: failed]"
+                        }
                     }
-                }
+                } else {
+                    ""
+                };
+
+                println!("{formatted}{webhook_status}");
             }
         }
 

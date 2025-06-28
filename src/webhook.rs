@@ -7,6 +7,12 @@ use url::Url;
 use crate::parser::LogMessage;
 use crate::WebhookFormat;
 
+#[derive(Debug)]
+pub enum WebhookResult {
+    Sent,
+    Skipped,
+}
+
 pub struct WebhookSender {
     client: Client,
     url: Url,
@@ -28,7 +34,16 @@ impl WebhookSender {
     }
 
     /// Send message to webhook
-    pub async fn send_message(&self, message: &LogMessage, formatted_content: &str) -> Result<()> {
+    pub async fn send_message(
+        &self,
+        message: &LogMessage,
+        formatted_content: &str,
+    ) -> Result<WebhookResult> {
+        // Skip low-information messages for webhook (but not for stdout)
+        if self.is_low_information_message_for_webhook(message) {
+            return Ok(WebhookResult::Skipped);
+        }
+
         let payload = self.format_message(message, formatted_content)?;
 
         let response = self
@@ -46,7 +61,56 @@ impl WebhookSender {
             ));
         }
 
-        Ok(())
+        Ok(WebhookResult::Sent)
+    }
+
+    /// Check if this message should be filtered out for webhook posting
+    /// (but still shown in stdout)
+    fn is_low_information_message_for_webhook(&self, message: &LogMessage) -> bool {
+        let Some(ref raw_content) = message.raw_content else {
+            return false;
+        };
+
+        let serde_json::Value::Array(arr) = raw_content else {
+            return false;
+        };
+
+        // If message contains meaningful text content, send it
+        let has_text = arr.iter().filter_map(|item| item.as_object()).any(|obj| {
+            obj.get("type")
+                .and_then(|t| t.as_str())
+                .filter(|&t| t == "text")
+                .and_then(|_| obj.get("text"))
+                .and_then(|text| text.as_str())
+                .map(|text| !text.trim().is_empty())
+                .unwrap_or(false)
+        });
+
+        if has_text {
+            return false;
+        }
+
+        // Filter out messages with only tool_result entries (User: Result pattern)
+        let only_tool_results = arr
+            .iter()
+            .filter_map(|item| item.as_object())
+            .filter_map(|obj| obj.get("type").and_then(|t| t.as_str()))
+            .all(|content_type| content_type == "tool_result");
+
+        // Filter out messages with only Read/Edit tool_use entries (Claude: Read/Edit pattern)
+        let only_read_edit_tools = arr
+            .iter()
+            .filter_map(|item| item.as_object())
+            .filter_map(|obj| obj.get("type").and_then(|t| t.as_str()))
+            .filter(|&t| t == "tool_use")
+            .all(|_| {
+                arr.iter()
+                    .filter_map(|item| item.as_object())
+                    .filter_map(|obj| obj.get("name").and_then(|n| n.as_str()))
+                    .all(|name| name == "Read" || name == "Edit")
+            });
+
+        only_tool_results || only_read_edit_tools
     }
 
     /// Format message according to webhook format
