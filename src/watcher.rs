@@ -1,14 +1,14 @@
-use anyhow::{Result, Context};
-use notify::{Watcher, RecursiveMode, Event, EventKind, event::CreateKind};
-use std::path::{Path, PathBuf};
+use anyhow::{Context, Result};
+use notify::{Event, EventKind, RecursiveMode, Watcher, event::CreateKind};
 use std::fs;
+use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use std::time::SystemTime;
 use tokio::sync::mpsc as tokio_mpsc;
-use tokio::time::{sleep, Duration};
+use tokio::time::{Duration, sleep};
 
-use crate::parser::LogParser;
 use crate::formatter::LogFormatter;
+use crate::parser::LogParser;
 
 pub struct LogWatcher {
     claude_dir: PathBuf,
@@ -20,7 +20,7 @@ impl LogWatcher {
     pub fn new() -> Self {
         let home = std::env::var("HOME").expect("HOME environment variable not set");
         let claude_dir = PathBuf::from(home).join(".claude").join("projects");
-        
+
         Self {
             claude_dir,
             parser: LogParser::new(),
@@ -30,8 +30,8 @@ impl LogWatcher {
 
     /// List available projects
     pub async fn list_projects(&self) -> Result<()> {
-        let entries = fs::read_dir(&self.claude_dir)
-            .context("Claude projects directory not found")?;
+        let entries =
+            fs::read_dir(&self.claude_dir).context("Claude projects directory not found")?;
 
         println!("Available projects:");
         for entry in entries {
@@ -39,15 +39,15 @@ impl LogWatcher {
             if entry.file_type()?.is_dir() {
                 let project_name = entry.file_name();
                 let project_path = entry.path();
-                
+
                 // Search for JSONL files within the project
                 if let Ok(files) = fs::read_dir(&project_path) {
                     let jsonl_count = files
                         .filter_map(|f| f.ok())
                         .filter(|f| f.path().extension().and_then(|s| s.to_str()) == Some("jsonl"))
                         .count();
-                    
-                    println!("  {:?} ({} sessions)", project_name, jsonl_count);
+
+                    println!("  {project_name:?} ({jsonl_count} sessions)");
                 }
             }
         }
@@ -56,8 +56,8 @@ impl LogWatcher {
 
     /// Get the latest project
     async fn get_latest_project(&self) -> Result<PathBuf> {
-        let entries = fs::read_dir(&self.claude_dir)
-            .context("Claude projects directory not found")?;
+        let entries =
+            fs::read_dir(&self.claude_dir).context("Claude projects directory not found")?;
 
         let mut latest_project: Option<(PathBuf, SystemTime)> = None;
 
@@ -66,7 +66,7 @@ impl LogWatcher {
             if entry.file_type()?.is_dir() {
                 let metadata = entry.metadata()?;
                 let modified = metadata.modified()?;
-                
+
                 if latest_project.is_none() || modified > latest_project.as_ref().unwrap().1 {
                     latest_project = Some((entry.path(), modified));
                 }
@@ -88,18 +88,18 @@ impl LogWatcher {
         // Check existing files
         self.process_existing_files(project_path).await?;
 
-        println!("Started monitoring project {:?}. Press Ctrl+C to exit.", project_path);
+        println!("Started monitoring project {project_path:?}. Press Ctrl+C to exit.");
 
         loop {
             match rx.recv() {
                 Ok(Ok(event)) => {
                     if let Err(e) = self.handle_file_event(event).await {
-                        eprintln!("Error processing file event: {}", e);
+                        eprintln!("Error processing file event: {e}");
                     }
                 }
-                Ok(Err(e)) => eprintln!("File watching error: {}", e),
+                Ok(Err(e)) => eprintln!("File watching error: {e}"),
                 Err(e) => {
-                    eprintln!("Channel receive error: {}", e);
+                    eprintln!("Channel receive error: {e}");
                     break;
                 }
             }
@@ -124,11 +124,13 @@ impl LogWatcher {
             if entry.file_type()?.is_dir() {
                 let project_path = entry.path();
                 let tx_clone = tx.clone();
-                
+
                 tokio::spawn(async move {
                     let mut watcher = LogWatcher::new();
                     if let Err(e) = watcher.watch_project(&project_path).await {
-                        let _ = tx_clone.send(format!("Error in project {:?}: {}", project_path, e)).await;
+                        let _ = tx_clone
+                            .send(format!("Error in project {project_path:?}: {e}"))
+                            .await;
                     }
                 });
             }
@@ -136,7 +138,7 @@ impl LogWatcher {
 
         // Receive error messages on main thread
         while let Some(error) = rx.recv().await {
-            eprintln!("{}", error);
+            eprintln!("{error}");
         }
 
         Ok(())
@@ -145,7 +147,7 @@ impl LogWatcher {
     /// Process existing files
     async fn process_existing_files(&mut self, project_path: &Path) -> Result<()> {
         let entries = fs::read_dir(project_path)?;
-        
+
         for entry in entries {
             let entry = entry?;
             if entry.path().extension().and_then(|s| s.to_str()) == Some("jsonl") {
@@ -154,7 +156,7 @@ impl LogWatcher {
                 }
             }
         }
-        
+
         Ok(())
     }
 
@@ -178,12 +180,12 @@ impl LogWatcher {
     /// Process JSONL file
     async fn process_jsonl_file(&mut self, path: &Path) -> Result<()> {
         let messages = self.parser.parse_file(path)?;
-        
+
         for message in messages {
             let formatted = self.formatter.format_message(&message)?;
-            println!("{}", formatted);
+            println!("{formatted}");
         }
-        
+
         Ok(())
     }
 }

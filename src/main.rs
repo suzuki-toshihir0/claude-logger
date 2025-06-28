@@ -1,10 +1,10 @@
-use clap::{Parser, Subcommand};
 use anyhow::Result;
+use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
-mod watcher;
-mod parser;
 mod formatter;
+mod parser;
+mod watcher;
 
 use watcher::LogWatcher;
 
@@ -22,11 +22,11 @@ enum Commands {
         /// Path to the project to monitor (e.g. /home/suzuki/.claude/projects/-home-suzuki-repos)
         #[arg(short, long)]
         project_path: Option<PathBuf>,
-        
+
         /// Automatically select the latest project
         #[arg(short, long)]
         latest: bool,
-        
+
         /// Monitor all projects
         #[arg(short, long)]
         all: bool,
@@ -40,9 +40,13 @@ async fn main() -> Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
-        Commands::Watch { project_path, latest, all } => {
+        Commands::Watch {
+            project_path,
+            latest,
+            all,
+        } => {
             let mut watcher = LogWatcher::new();
-            
+
             if *all {
                 println!("Monitoring all projects...");
                 watcher.watch_all().await?;
@@ -50,7 +54,7 @@ async fn main() -> Result<()> {
                 println!("Monitoring latest project...");
                 watcher.watch_latest().await?;
             } else if let Some(path) = project_path {
-                println!("Monitoring project {:?}...", path);
+                println!("Monitoring project {path:?}...");
                 watcher.watch_project(path).await?;
             } else {
                 eprintln!("Please specify project path, --latest, or --all option");

@@ -1,6 +1,6 @@
+use crate::parser::{LogMessage, MessageRole};
 use anyhow::Result;
 use chrono::{Local, TimeZone};
-use crate::parser::{LogMessage, MessageRole};
 
 pub struct LogFormatter {
     show_timestamp: bool,
@@ -86,7 +86,7 @@ impl LogFormatter {
                     if line.trim().is_empty() {
                         String::new()
                     } else {
-                        format!("  {}", line)
+                        format!("  {line}")
                     }
                 })
                 .collect::<Vec<_>>()
@@ -114,8 +114,7 @@ impl LogFormatter {
     /// Display statistics
     pub fn format_stats(&self, user_messages: usize, assistant_messages: usize) -> String {
         format!(
-            "📊 Statistics: {} user messages, {} Claude messages",
-            user_messages, assistant_messages
+            "📊 Statistics: {user_messages} user messages, {assistant_messages} Claude messages"
         )
     }
 }
@@ -139,7 +138,7 @@ mod tests {
     fn test_basic_formatting() {
         let formatter = LogFormatter::new();
         let message = create_test_message();
-        
+
         let result = formatter.format_message(&message).unwrap();
         assert!(result.contains("👤 User"));
         assert!(result.contains("Test message."));
@@ -149,7 +148,7 @@ mod tests {
     fn test_compact_mode() {
         let formatter = LogFormatter::new().with_compact_mode(true);
         let message = create_test_message();
-        
+
         let result = formatter.format_message(&message).unwrap();
         assert!(!result.contains('\n'));
     }
@@ -158,7 +157,7 @@ mod tests {
     fn test_session_id_display() {
         let formatter = LogFormatter::new().with_session_id(true);
         let message = create_test_message();
-        
+
         let result = formatter.format_message(&message).unwrap();
         assert!(result.contains("test-ses"));
     }

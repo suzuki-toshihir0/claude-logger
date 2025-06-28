@@ -1,10 +1,10 @@
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Seek, SeekFrom};
 use std::path::Path;
-use chrono::{DateTime, Utc};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LogMessage {
@@ -46,32 +46,29 @@ pub struct LogParser {
 
 impl LogParser {
     pub fn new() -> Self {
-        Self {
-            last_position: 0,
-        }
+        Self { last_position: 0 }
     }
 
     /// Parse entire file
     pub fn parse_file(&mut self, path: &Path) -> Result<Vec<LogMessage>> {
-        let mut file = File::open(path)
-            .with_context(|| format!("Cannot open file {:?}", path))?;
-        
+        let mut file = File::open(path).with_context(|| format!("Cannot open file {path:?}"))?;
+
         // Read from the last position we read from
         file.seek(SeekFrom::Start(self.last_position))?;
         let reader = BufReader::new(file);
-        
+
         let mut messages = Vec::new();
         let mut current_position = self.last_position;
-        
+
         for line in reader.lines() {
             let line = line?;
             current_position += line.len() as u64 + 1; // +1 for newline
-            
+
             if let Ok(message) = self.parse_line(&line) {
                 messages.push(message);
             }
         }
-        
+
         self.last_position = current_position;
         Ok(messages)
     }
@@ -83,18 +80,19 @@ impl LogParser {
 
     /// Parse a single JSONL entry
     fn parse_line(&self, line: &str) -> Result<LogMessage> {
-        let raw: RawLogEntry = serde_json::from_str(line)
-            .context("Failed to parse JSON")?;
+        let raw: RawLogEntry = serde_json::from_str(line).context("Failed to parse JSON")?;
 
         // Process only user or assistant messages
         if raw.entry_type != "user" && raw.entry_type != "assistant" {
             return Err(anyhow::anyhow!("Not a message type"));
         }
 
-        let message = raw.message.ok_or_else(|| anyhow::anyhow!("Message field not found"))?;
-        
-        let content_msg: MessageContent = serde_json::from_value(message)
-            .context("Failed to parse message content")?;
+        let message = raw
+            .message
+            .ok_or_else(|| anyhow::anyhow!("Message field not found"))?;
+
+        let content_msg: MessageContent =
+            serde_json::from_value(message).context("Failed to parse message content")?;
 
         let role = match content_msg.role.as_str() {
             "user" => MessageRole::User,
@@ -104,7 +102,7 @@ impl LogParser {
         };
 
         let content = self.extract_content(&content_msg.content)?;
-        
+
         let timestamp = DateTime::parse_from_rfc3339(&raw.timestamp)
             .context("Failed to parse timestamp")?
             .with_timezone(&Utc);
@@ -141,7 +139,7 @@ impl LogParser {
                                 "tool_use" => {
                                     if let Some(name) = obj.get("name") {
                                         if let Some(name_str) = name.as_str() {
-                                            result.push_str(&format!("[Tool Use: {}]", name_str));
+                                            result.push_str(&format!("[Tool Use: {name_str}]"));
                                             result.push('\n');
                                         }
                                     }
@@ -155,7 +153,10 @@ impl LogParser {
                                     result.push('\n');
                                 }
                                 _ => {
-                                    result.push_str(&format!("[{}]", content_type.as_str().unwrap_or("unknown")));
+                                    result.push_str(&format!(
+                                        "[{}]",
+                                        content_type.as_str().unwrap_or("unknown")
+                                    ));
                                     result.push('\n');
                                 }
                             }
@@ -164,7 +165,7 @@ impl LogParser {
                 }
                 Ok(result.trim_end().to_string())
             }
-            _ => Ok(format!("Message content: {:?}", content)),
+            _ => Ok(format!("Message content: {content:?}")),
         }
     }
 
