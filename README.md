@@ -1,5 +1,7 @@
 # Claude Logger
 
+***<span style="font-size: 140%">Work Out Loud with your Claude Code!</span>***
+
 Real-time monitoring tool for Claude Code conversations. Watches JSONL log files and streams formatted messages to stdout with optional webhook integration.
 
 ## Features
