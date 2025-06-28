@@ -1,98 +1,127 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Claude Logger
 
-A real-time monitoring tool for Claude Code's JSONL log files that streams conversation content to standard output.
+Real-time monitoring tool for Claude Code's JSONL conversation logs with webhook integration support.
 
-## Project Overview
+## Build & Development Commands
 
-### Purpose
-- Monitor and display Claude Code conversations in real-time
-- Build foundation for future Slack integration and work out loud functionality
-- Provide mechanism to share development thought processes externally
-
-### Tech Stack
-- **Language**: Rust (edition 2024)
-- **Async Runtime**: Tokio
-- **File Watching**: notify crate (inotify)
-- **CLI**: clap
-- **Date/Time**: chrono
-- **JSON Processing**: serde_json
-
-## Architecture
-
-### Module Structure
-```
-src/
-├── main.rs       - CLI entry point
-├── watcher.rs    - File watching logic
-├── parser.rs     - JSONL parsing and message extraction
-└── formatter.rs  - Output formatting
-```
-
-### Data Flow
-1. **File Watching**: Detect JSONL file changes using inotify
-2. **Parsing**: Parse new lines as JSON and extract messages
-3. **Formatting**: Format into user-friendly output
-4. **Output**: Display messages to stdout in Japanese
-
-## Configuration & Customization
-
-### Log File Location
-- Default: `~/.claude/projects/[project-name]/[UUID].jsonl`
-- Uses `HOME` environment variable to construct paths
-
-### Output Formatting
-Customizable in `formatter.rs`:
-- Timestamp display toggle
-- Session ID display toggle
-- Compact mode (truncate long messages)
-
-### Performance Settings
-- File watching interval: 100ms
-- Async channel buffer size: 100
-
-## Future Roadmap
-
-### Phase 1: Core Features (Complete)
-- [x] JSONL file monitoring
-- [x] Message parsing & formatting
-- [x] CLI interface
-
-### Phase 2: Extended Features
-- [ ] Slack webhook integration
-- [ ] Message filtering
-- [ ] Configuration file support
-- [ ] Log level settings
-
-### Phase 3: Work Out Loud
-- [ ] Real-time thought process sharing
-- [ ] Team dashboard
-- [ ] Analytics & statistics
-
-## Development Notes
-
-### Known Issues
-- Memory usage with large files
-- Resource consumption during multi-project monitoring
-- Handling JSONL format changes
-
-### Testing Strategy
-- Unit tests: Basic tests implemented in `formatter.rs`
-- Integration tests: Need validation with actual JSONL files
-- Performance tests: Load testing with high message volume
-
-### Debugging
 ```bash
-# Run with detailed logging
+# Build debug version
+cargo build
+
+# Build release version  
+cargo build --release
+
+# Run tests
+cargo test
+
+# Run with debug logging
 RUST_LOG=debug cargo run -- watch --latest
 
-# Test with specific JSONL file
-./target/debug/claude-logger watch -p ~/.claude/projects/-home-suzuki-repos
+# Run clippy lints
+cargo clippy
+
+# Format code
+cargo fmt
+
+# Check compilation without building
+cargo check
 ```
 
-## Design Principles
+## High-Level Architecture
 
-1. **Simplicity**: Minimal dependencies for reliable operation
-2. **Extensibility**: Modular design for future feature additions
-3. **Japanese Support**: All output and documentation in Japanese
-4. **Real-time**: Immediate detection and processing of file changes
-5. **Safety**: Comprehensive error handling to prevent crashes
+### Data Flow
+```
+JSONL File → LogWatcher → LogParser → LogFormatter → stdout/webhook
+                ↑            ↓             ↓
+            inotify     parse_file   format_message
+```
+
+### Core Components
+
+**LogWatcher** (`src/watcher.rs`)
+- Monitors `~/.claude/projects/` directory using inotify
+- Manages file watching, project discovery, and event handling
+- Filters messages by startup time when `include_existing=false` (default)
+- Coordinates between parser, formatter, and webhook sender
+
+**LogParser** (`src/parser.rs`)
+- Parses JSONL files into structured `LogMessage` objects
+- Extracts role, content, timestamp from Claude Code's log format
+- Handles tool usage and thinking blocks
+- Preserves raw content for detailed tool display modes
+
+**LogFormatter** (`src/formatter.rs`)
+- Formats messages for terminal output
+- Supports three tool display modes: none, simple, detailed
+- Extracts tool information from raw message content
+- Handles timestamp formatting and role indicators
+
+**WebhookSender** (`src/webhook.rs`)
+- Sends formatted messages to external webhooks
+- Supports Generic JSON and Slack formats
+- Uses reqwest for async HTTP requests
+
+### Key Design Decisions
+
+1. **Timestamp-based filtering**: Messages are filtered by `startup_time` to prevent duplicate output when files are modified
+
+2. **Tool display modes**: Complex tool usage can be hidden (none), simplified (🔧 Bash), or detailed (with parameters)
+
+3. **Include existing flag**: By default (`--include-existing=false`), historical messages are skipped to prevent webhook spam
+
+4. **Async architecture**: Uses Tokio for concurrent file watching and webhook sending
+
+## Important CLI Options
+
+```bash
+# Watch latest project (default: skip existing messages)
+claude-logger watch --latest
+
+# Include historical messages
+claude-logger watch --latest --include-existing
+
+# Configure tool display
+claude-logger watch --latest --tool-display detailed
+
+# Enable webhook
+claude-logger watch --latest --webhook-url https://hooks.slack.com/... --webhook-format slack
+```
+
+## Message Types & Formatting
+
+The formatter handles several message types:
+- User messages: `👤 User: ...`
+- Assistant messages: `🤖 Claude: ...`
+- Tool usage: `🔧 ToolName` or detailed parameters
+- Thinking blocks: `💭 Thinking...`
+
+## Testing Approach
+
+```bash
+# Run unit tests
+cargo test
+
+# Test webhook formatting
+cargo test format_slack
+
+# Manual testing with real Claude session
+# Terminal 1: claude-logger watch --latest
+# Terminal 2: claude --project /path/to/project
+```
+
+## Common Issues & Solutions
+
+1. **Duplicate message output**: Resolved by timestamp filtering in `process_jsonl_file`
+2. **Webhook spam on startup**: Use default `--include-existing=false`
+3. **Tool output noise**: Adjust with `--tool-display none`
+
+## Future Extension Points
+
+- Additional webhook formats can be added to `WebhookFormat` enum
+- New output formatters can extend `LogFormatter`
+- Alternative file watching strategies in `LogWatcher`
+- Custom message filters in `process_jsonl_file`

@@ -1,13 +1,14 @@
 # Claude Logger
 
-Real-time monitoring tool for Claude Code conversations. Watches JSONL log files and streams formatted messages to stdout.
+Real-time monitoring tool for Claude Code conversations. Watches JSONL log files and streams formatted messages to stdout with optional webhook integration.
 
 ## Features
 
 - 🔍 **Real-time monitoring** of Claude Code JSONL logs
 - 📁 **Project management** - monitor latest, specific, or all projects
-- 🎯 **Smart filtering** - extracts user and assistant messages only
-- 🇯🇵 **Japanese output** - user-friendly formatting with emojis
+- 🎯 **Smart filtering** - skip historical messages by default
+- 🔧 **Tool display modes** - hide, simplify, or detail tool usage
+- 🔔 **Webhook integration** - send messages to Slack or custom endpoints
 - ⚡ **Fast & lightweight** - efficient file watching with inotify
 
 ## Installation
@@ -33,10 +34,10 @@ claude-logger list
 ```
 Output:
 ```
-利用可能なプロジェクト:
-  "-home-suzuki-repos-dotfiles" (18 セッション)
-  "-home-suzuki-repos-aocs-all" (1 セッション)
-  "-home-suzuki-repos" (1 セッション)
+Available projects:
+  "-home-suzuki-repos-dotfiles" (18 sessions)
+  "-home-suzuki-repos-aocs-all" (1 sessions)
+  "-home-suzuki-repos" (1 sessions)
 ```
 
 ### Monitor latest project
@@ -56,14 +57,74 @@ claude-logger watch -p /home/user/.claude/projects/-home-user-repos
 claude-logger watch --all
 ```
 
+## Advanced Options
+
+### Tool Display Modes
+Control how tool usage is displayed:
+```bash
+# Hide all tool usage (default: simple)
+claude-logger watch --latest --tool-display none
+
+# Show simple indicators like "🔧 Bash"
+claude-logger watch --latest --tool-display simple
+
+# Show detailed tool parameters
+claude-logger watch --latest --tool-display detailed
+```
+
+### Include Historical Messages
+By default, only new messages are shown. To include existing messages:
+```bash
+claude-logger watch --latest --include-existing
+```
+
+### Webhook Integration
+Send messages to external services:
+```bash
+# Slack webhook
+claude-logger watch --latest \
+  --webhook-url https://hooks.slack.com/services/YOUR/WEBHOOK/URL \
+  --webhook-format slack
+
+# Generic JSON webhook
+claude-logger watch --latest \
+  --webhook-url https://example.com/webhook \
+  --webhook-format generic
+```
+
 ## Output Format
 
 Messages are displayed with timestamps and role indicators:
 
 ```
-[14:23:15] 👤 ユーザー: Help me implement a file watcher in Rust
+[14:23:15] 👤 User: Help me implement a file watcher in Rust
 [14:23:18] 🤖 Claude: I'll help you create a file watcher in Rust...
-[14:23:20] 🤖 Claude: [ツール使用: Write]
+[14:23:20] 🤖 Claude: 🔧 Write
+[14:23:22] 🤖 Claude: ✅ Result
+```
+
+### Tool Display Examples
+
+**None mode**: Tool usage is hidden
+```
+[14:23:15] 👤 User: Create a test file
+[14:23:18] 🤖 Claude: I'll create a test file for you.
+```
+
+**Simple mode** (default): Shows tool names
+```
+[14:23:15] 👤 User: Create a test file
+[14:23:18] 🤖 Claude: I'll create a test file for you.
+[14:23:20] 🤖 Claude: 🔧 Write
+[14:23:22] 🤖 Claude: ✅ Result
+```
+
+**Detailed mode**: Shows tool parameters
+```
+[14:23:15] 👤 User: Create a test file
+[14:23:18] 🤖 Claude: I'll create a test file for you.
+[14:23:20] 🤖 Claude: 🔧 Write: test.txt
+[14:23:22] 🤖 Claude: ✅ File created successfully
 ```
 
 ## Configuration
@@ -76,6 +137,7 @@ Claude Logger automatically detects log files in:
 
 ### Environment Variables
 - `HOME` - Used to locate Claude configuration directory
+- `RUST_LOG` - Set to `debug` for verbose logging
 
 ## Examples
 
@@ -88,21 +150,53 @@ claude-logger list
 claude-logger watch --latest
 
 # 3. In another terminal, start Claude Code session
-claude --project /path/to/your/project
+claude code
 
 # 4. Watch real-time conversation output
 ```
 
-### Pipe to file or other tools
+### Integration examples
 ```bash
 # Save to file
 claude-logger watch --latest > conversation.log
 
-# Send to Slack (future feature)
-claude-logger watch --latest | slack-sender
-
 # Filter specific content
-claude-logger watch --latest | grep "ユーザー"
+claude-logger watch --latest | grep "Error"
+
+# Send to Slack with minimal tool output
+claude-logger watch --latest \
+  --tool-display simple \
+  --webhook-url $SLACK_WEBHOOK_URL \
+  --webhook-format slack
+```
+
+## Webhook Formats
+
+### Generic Format
+Sends JSON payload with full message details:
+```json
+{
+  "timestamp": "2025-06-28T14:23:15Z",
+  "role": "User",
+  "content": "[14:23:15] 👤 User: Hello",
+  "session_id": "session-uuid",
+  "uuid": "message-uuid"
+}
+```
+
+### Slack Format
+Sends formatted message ready for Slack display:
+```json
+{
+  "text": "[14:23:15] 👤 User: Hello",
+  "blocks": [{
+    "type": "section",
+    "text": {
+      "type": "mrkdwn",
+      "text": "[14:23:15] 👤 User: Hello"
+    }
+  }]
+}
 ```
 
 ## Troubleshooting
@@ -112,34 +206,26 @@ claude-logger watch --latest | grep "ユーザー"
 - Check that `~/.claude/projects/` directory exists
 - Verify permissions to read the directory
 
-### File not updating
-- Confirm Claude Code is actively running
-- Check file permissions
-- Try monitoring a different project
+### Duplicate messages on startup
+- This is normal if using `--include-existing`
+- Default behavior skips existing messages
+- Messages are filtered by startup timestamp
+
+### Webhook not receiving messages
+- Verify webhook URL is accessible
+- Check network connectivity
+- Look for error messages in terminal output
 
 ### Performance issues
-- Large log files may cause memory usage spikes
-- Consider monitoring specific projects instead of all projects
-- Check system inotify limits if monitoring fails
+- Large log files may cause initial parsing delays
+- Consider using `--tool-display none` for better performance
+- Monitor specific projects instead of `--all`
 
-## Architecture
+## Development
 
-### Core Components
-- **Watcher**: File system monitoring using inotify
-- **Parser**: JSONL parsing and message extraction  
-- **Formatter**: User-friendly output formatting
-- **CLI**: Command-line interface with clap
-
-### Message Flow
-```
-JSONL File → File Watcher → Parser → Formatter → stdout
-```
-
-## Contributing
-
-### Development setup
+### Build and test
 ```bash
-# Clone and setup
+# Clone repository
 git clone <repository-url>
 cd claude-logger
 
@@ -149,31 +235,35 @@ cargo test
 # Run with debug output
 RUST_LOG=debug cargo run -- watch --latest
 
-# Build release version
-cargo build --release
+# Apply lints
+cargo clippy
+
+# Format code
+cargo fmt
 ```
 
-### Code structure
+### Architecture Overview
 - `src/main.rs` - CLI interface and command handling
 - `src/watcher.rs` - File watching and project management
 - `src/parser.rs` - JSONL parsing and message extraction
 - `src/formatter.rs` - Output formatting and display
+- `src/webhook.rs` - Webhook integration
 
 ## License
 
 [Specify your license here]
 
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
 ## Roadmap
 
 - [ ] Configuration file support
-- [ ] Slack webhook integration
-- [ ] Message filtering options
+- [ ] Additional webhook formats (Discord, Teams)
+- [ ] Message filtering by content/role
+- [ ] Session replay functionality
 - [ ] Web dashboard interface
-- [ ] Team collaboration features
-
-## Support
-
-For issues and feature requests, please [open an issue](link-to-issues).
 
 ---
 
