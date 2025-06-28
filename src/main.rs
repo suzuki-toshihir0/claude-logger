@@ -1,10 +1,12 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
+use url::Url;
 
 mod formatter;
 mod parser;
 mod watcher;
+mod webhook;
 
 use watcher::LogWatcher;
 
@@ -16,6 +18,16 @@ pub enum ToolDisplayMode {
     Simple,
     /// Show detailed tool information including parameters
     Detailed,
+}
+
+#[derive(Debug, Clone, ValueEnum)]
+pub enum WebhookFormat {
+    /// Generic JSON webhook format
+    Generic,
+    /// Slack webhook format
+    Slack,
+    /// Discord webhook format
+    Discord,
 }
 
 #[derive(Parser)]
@@ -44,6 +56,14 @@ enum Commands {
         /// Tool display mode: none, simple, or detailed
         #[arg(long, default_value = "simple")]
         tool_display: ToolDisplayMode,
+
+        /// Webhook URL to post messages
+        #[arg(long)]
+        webhook_url: Option<Url>,
+
+        /// Webhook format: generic, slack, or discord
+        #[arg(long, default_value = "generic")]
+        webhook_format: WebhookFormat,
     },
     /// List available projects
     List,
@@ -59,8 +79,12 @@ async fn main() -> Result<()> {
             latest,
             all,
             tool_display,
+            webhook_url,
+            webhook_format,
         } => {
-            let mut watcher = LogWatcher::new().with_tool_display_mode(tool_display.clone());
+            let mut watcher = LogWatcher::new()
+                .with_tool_display_mode(tool_display.clone())
+                .with_webhook(webhook_url.clone(), webhook_format.clone());
 
             if *all {
                 println!("Monitoring all projects...");

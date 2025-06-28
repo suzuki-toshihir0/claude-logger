@@ -9,11 +9,15 @@ use tokio::time::{Duration, sleep};
 
 use crate::formatter::LogFormatter;
 use crate::parser::LogParser;
+use crate::webhook::WebhookSender;
+use crate::{WebhookFormat};
+use url::Url;
 
 pub struct LogWatcher {
     claude_dir: PathBuf,
     parser: LogParser,
     formatter: LogFormatter,
+    webhook_sender: Option<WebhookSender>,
 }
 
 impl LogWatcher {
@@ -25,11 +29,27 @@ impl LogWatcher {
             claude_dir,
             parser: LogParser::new(),
             formatter: LogFormatter::new(),
+            webhook_sender: None,
         }
     }
 
     pub fn with_tool_display_mode(mut self, mode: crate::ToolDisplayMode) -> Self {
         self.formatter = self.formatter.with_tool_display_mode(mode);
+        self
+    }
+
+    pub fn with_webhook(mut self, url: Option<Url>, format: WebhookFormat) -> Self {
+        if let Some(webhook_url) = url {
+            match WebhookSender::new(webhook_url, format) {
+                Ok(sender) => {
+                    self.webhook_sender = Some(sender);
+                    println!("Webhook configured successfully");
+                }
+                Err(e) => {
+                    eprintln!("Failed to configure webhook: {}", e);
+                }
+            }
+        }
         self
     }
 
@@ -190,6 +210,13 @@ impl LogWatcher {
             let formatted = self.formatter.format_message(&message)?;
             if !formatted.trim().is_empty() {
                 println!("{formatted}");
+
+                // Send to webhook if configured
+                if let Some(ref webhook) = self.webhook_sender {
+                    if let Err(e) = webhook.send_message(&message, &formatted).await {
+                        eprintln!("Failed to send webhook: {}", e);
+                    }
+                }
             }
         }
 
