@@ -1,17 +1,17 @@
 use anyhow::{Context, Result};
 use chrono::{DateTime, Utc};
-use notify::{Event, EventKind, RecursiveMode, Watcher, event::CreateKind};
+use notify::{event::CreateKind, Event, EventKind, RecursiveMode, Watcher};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc;
 use std::time::SystemTime;
 use tokio::sync::mpsc as tokio_mpsc;
-use tokio::time::{Duration, sleep};
+use tokio::time::{sleep, Duration};
 
-use crate::WebhookFormat;
 use crate::formatter::LogFormatter;
 use crate::parser::LogParser;
 use crate::webhook::WebhookSender;
+use crate::WebhookFormat;
 use url::Url;
 
 pub struct LogWatcher {
