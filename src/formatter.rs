@@ -76,12 +76,12 @@ impl LogFormatter {
 
         // Message content
         let formatted_content = self.format_message_content(message)?;
-        
+
         // Skip empty messages (filtered tool messages in none mode)
         if formatted_content.trim().is_empty() {
             return Ok(String::new());
         }
-        
+
         if self.compact_mode {
             // Compact mode: show only first 100 characters
             let content = if formatted_content.len() > 100 {
@@ -111,9 +111,10 @@ impl LogFormatter {
             match self.tool_display_mode {
                 crate::ToolDisplayMode::None => {
                     // Filter out tool messages, but keep text content
-                    if message.content.trim().is_empty() || 
-                       message.content.starts_with("[Tool") ||
-                       message.content.starts_with("[Thinking") {
+                    if message.content.trim().is_empty()
+                        || message.content.starts_with("[Tool")
+                        || message.content.starts_with("[Thinking")
+                    {
                         return Ok(String::new());
                     }
                 }
@@ -142,16 +143,16 @@ impl LogFormatter {
                                     .get("name")
                                     .and_then(|n| n.as_str())
                                     .unwrap_or("Unknown");
-                                
+
                                 let simple = format!("🔧 {tool_name}");
-                                
+
                                 let detailed = if let Some(input) = obj.get("input") {
                                     let input_str = self.format_tool_input(input);
                                     format!("🔧 {tool_name}: {input_str}")
                                 } else {
                                     simple.clone()
                                 };
-                                
+
                                 return Some(ToolContent {
                                     simple_format: simple,
                                     detailed_format: detailed,
@@ -159,14 +160,14 @@ impl LogFormatter {
                             }
                             "tool_result" => {
                                 let simple = "✅ Result".to_string();
-                                
+
                                 let detailed = if let Some(content) = obj.get("content") {
                                     let content_str = self.format_tool_result(content);
                                     format!("✅ {content_str}")
                                 } else {
                                     simple.clone()
                                 };
-                                
+
                                 return Some(ToolContent {
                                     simple_format: simple,
                                     detailed_format: detailed,
@@ -204,7 +205,7 @@ impl LogFormatter {
                 let truncated = s.chars().take(50).collect::<String>();
                 truncated + if s.len() > 50 { "..." } else { "" }
             }
-            _ => "(...)".to_string()
+            _ => "(...)".to_string(),
         }
     }
 
@@ -216,7 +217,7 @@ impl LogFormatter {
                 let truncated = first_line.chars().take(50).collect::<String>();
                 truncated + if first_line.len() > 50 { "..." } else { "" }
             }
-            _ => "Result".to_string()
+            _ => "Result".to_string(),
         }
     }
 
@@ -279,6 +280,7 @@ mod tests {
             timestamp: Utc::now(),
             session_id: "test-session-12345".to_string(),
             uuid: "test-uuid".to_string(),
+            raw_content: None,
         }
     }
 

@@ -1,11 +1,11 @@
 use anyhow::{Context, Result};
 use reqwest::Client;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::time::Duration;
 use url::Url;
 
-use crate::parser::LogMessage;
 use crate::WebhookFormat;
+use crate::parser::LogMessage;
 
 pub struct WebhookSender {
     client: Client,
@@ -30,7 +30,7 @@ impl WebhookSender {
     /// Send message to webhook
     pub async fn send_message(&self, message: &LogMessage, formatted_content: &str) -> Result<()> {
         let payload = self.format_message(message, formatted_content)?;
-        
+
         let response = self
             .client
             .post(self.url.clone())
@@ -85,14 +85,13 @@ impl WebhookSender {
             ]
         }))
     }
-
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::Utc;
     use crate::parser::MessageRole;
+    use chrono::Utc;
 
     fn create_test_message() -> LogMessage {
         LogMessage {
@@ -110,9 +109,11 @@ mod tests {
         let url = Url::parse("https://example.com/webhook").unwrap();
         let sender = WebhookSender::new(url, WebhookFormat::Generic).unwrap();
         let message = create_test_message();
-        
-        let result = sender.format_generic(&message, "Formatted content").unwrap();
-        
+
+        let result = sender
+            .format_generic(&message, "Formatted content")
+            .unwrap();
+
         assert!(result.get("content").is_some());
         assert!(result.get("role").is_some());
         assert!(result.get("timestamp").is_some());
@@ -123,11 +124,10 @@ mod tests {
         let url = Url::parse("https://example.com/webhook").unwrap();
         let sender = WebhookSender::new(url, WebhookFormat::Slack).unwrap();
         let message = create_test_message();
-        
+
         let result = sender.format_slack(&message, "Formatted content").unwrap();
-        
+
         assert!(result.get("text").is_some());
         assert!(result.get("blocks").is_some());
     }
-
 }
