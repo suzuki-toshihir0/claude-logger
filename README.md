@@ -13,11 +13,6 @@ Real-time monitoring tool for Claude Code conversations. Watches JSONL log files
 
 ## Installation
 
-### Prerequisites
-- Rust 1.88.0 or later
-- Claude Code installed and configured
-
-### Build from source
 ```bash
 git clone <repository-url>
 cd claude-logger
@@ -28,33 +23,9 @@ The binary will be available at `./target/release/claude-logger`
 
 ## Usage
 
-### List available projects
-```bash
-claude-logger list
-```
-Output:
-```
-Available projects:
-  "-home-suzuki-repos-dotfiles" (18 sessions)
-  "-home-suzuki-repos-aocs-all" (1 sessions)
-  "-home-suzuki-repos" (1 sessions)
-```
-
 ### Monitor latest project
 ```bash
 claude-logger watch --latest
-```
-
-### Monitor specific project
-```bash
-claude-logger watch --project-path /home/user/.claude/projects/-home-user-repos
-# or short form
-claude-logger watch -p /home/user/.claude/projects/-home-user-repos
-```
-
-### Monitor all projects
-```bash
-claude-logger watch --all
 ```
 
 ## Advanced Options
@@ -68,7 +39,7 @@ claude-logger watch --latest --tool-display none
 # Show simple indicators like "🔧 Bash"
 claude-logger watch --latest --tool-display simple
 
-# Show detailed tool parameters
+# Show detailed tool usage
 claude-logger watch --latest --tool-display detailed
 ```
 
@@ -143,16 +114,13 @@ Claude Logger automatically detects log files in:
 
 ### Basic monitoring workflow
 ```bash
-# 1. Check available projects
-claude-logger list
-
-# 2. Start monitoring latest project
+# 1. Start monitoring latest project
 claude-logger watch --latest
 
-# 3. In another terminal, start Claude Code session
+# 2. In another terminal, start Claude Code session
 claude code
 
-# 4. Watch real-time conversation output
+# 3. Watch real-time conversation output
 ```
 
 ### Integration examples
@@ -249,22 +217,3 @@ cargo fmt
 - `src/formatter.rs` - Output formatting and display
 - `src/webhook.rs` - Webhook integration
 
-## License
-
-[Specify your license here]
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Roadmap
-
-- [ ] Configuration file support
-- [ ] Additional webhook formats (Discord, Teams)
-- [ ] Message filtering by content/role
-- [ ] Session replay functionality
-- [ ] Web dashboard interface
-
----
-
-Built with ❤️ for the Claude Code community
