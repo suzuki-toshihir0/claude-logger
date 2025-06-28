@@ -16,7 +16,7 @@ Real-time monitoring tool for Claude Code conversations. Watches JSONL log files
 ## Installation
 
 ```bash
-git clone <repository-url>
+git clone git@github.com:suzuki-toshihir0/claude-logger.git
 cd claude-logger
 cargo build --release
 ```
