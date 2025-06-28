@@ -1,5 +1,5 @@
 use anyhow::Result;
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
 
 mod formatter;
@@ -7,6 +7,16 @@ mod parser;
 mod watcher;
 
 use watcher::LogWatcher;
+
+#[derive(Debug, Clone, ValueEnum)]
+pub enum ToolDisplayMode {
+    /// Hide all tool information
+    None,
+    /// Show simple tool indicators (🔧 Bash)
+    Simple,
+    /// Show detailed tool information including parameters
+    Detailed,
+}
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -30,6 +40,10 @@ enum Commands {
         /// Monitor all projects
         #[arg(short, long)]
         all: bool,
+
+        /// Tool display mode: none, simple, or detailed
+        #[arg(long, default_value = "simple")]
+        tool_display: ToolDisplayMode,
     },
     /// List available projects
     List,
@@ -44,8 +58,9 @@ async fn main() -> Result<()> {
             project_path,
             latest,
             all,
+            tool_display,
         } => {
-            let mut watcher = LogWatcher::new();
+            let mut watcher = LogWatcher::new().with_tool_display_mode(tool_display.clone());
 
             if *all {
                 println!("Monitoring all projects...");

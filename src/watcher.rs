@@ -28,6 +28,11 @@ impl LogWatcher {
         }
     }
 
+    pub fn with_tool_display_mode(mut self, mode: crate::ToolDisplayMode) -> Self {
+        self.formatter = self.formatter.with_tool_display_mode(mode);
+        self
+    }
+
     /// List available projects
     pub async fn list_projects(&self) -> Result<()> {
         let entries =
@@ -183,7 +188,9 @@ impl LogWatcher {
 
         for message in messages {
             let formatted = self.formatter.format_message(&message)?;
-            println!("{formatted}");
+            if !formatted.trim().is_empty() {
+                println!("{formatted}");
+            }
         }
 
         Ok(())

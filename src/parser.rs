@@ -13,6 +13,7 @@ pub struct LogMessage {
     pub timestamp: DateTime<Utc>,
     pub session_id: String,
     pub uuid: String,
+    pub raw_content: Option<Value>, // Store raw content for detailed tool parsing
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -103,6 +104,7 @@ impl LogParser {
         };
 
         let content = self.extract_content(&content_msg.content)?;
+        let raw_content = Some(content_msg.content.clone());
 
         let timestamp = DateTime::parse_from_rfc3339(&raw.timestamp)
             .context("Failed to parse timestamp")?
@@ -116,6 +118,7 @@ impl LogParser {
             timestamp,
             session_id,
             uuid: raw.uuid,
+            raw_content,
         })
     }
 
