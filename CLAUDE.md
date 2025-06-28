@@ -29,6 +29,9 @@ cargo fmt
 
 # Check compilation without building
 cargo check
+
+# Publish to crates.io
+cargo publish
 ```
 
 ## High-Level Architecture
@@ -105,7 +108,10 @@ The formatter handles several message types:
 # Run unit tests
 cargo test
 
-# Test webhook formatting
+# Test specific module
+cargo test webhook
+
+# Test with pattern matching
 cargo test format_slack
 
 # Manual testing with real Claude session
@@ -118,6 +124,16 @@ cargo test format_slack
 1. **Duplicate message output**: Resolved by timestamp filtering in `process_jsonl_file`
 2. **Webhook spam on startup**: Use default `--include-existing=false`
 3. **Tool output noise**: Adjust with `--tool-display none`
+
+## Installation & Distribution
+
+```bash
+# Install from crates.io
+cargo install claude-logger
+
+# Install from local source
+cargo install --path .
+```
 
 ## Future Extension Points
 
