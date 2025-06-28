@@ -17,21 +17,21 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Claude Codeのログファイルを監視して標準出力に流す
+    /// Watch Claude Code log files and stream to stdout
     Watch {
-        /// 監視するプロジェクトのパス (例: /home/suzuki/.claude/projects/-home-suzuki-repos)
+        /// Path to the project to monitor (e.g. /home/suzuki/.claude/projects/-home-suzuki-repos)
         #[arg(short, long)]
         project_path: Option<PathBuf>,
         
-        /// 最新のプロジェクトを自動選択
+        /// Automatically select the latest project
         #[arg(short, long)]
         latest: bool,
         
-        /// すべてのプロジェクトを監視
+        /// Monitor all projects
         #[arg(short, long)]
         all: bool,
     },
-    /// 利用可能なプロジェクトを一覧表示
+    /// List available projects
     List,
 }
 
@@ -44,16 +44,16 @@ async fn main() -> Result<()> {
             let mut watcher = LogWatcher::new();
             
             if *all {
-                println!("すべてのプロジェクトを監視中...");
+                println!("Monitoring all projects...");
                 watcher.watch_all().await?;
             } else if *latest {
-                println!("最新のプロジェクトを監視中...");
+                println!("Monitoring latest project...");
                 watcher.watch_latest().await?;
             } else if let Some(path) = project_path {
-                println!("プロジェクト {:?} を監視中...", path);
+                println!("Monitoring project {:?}...", path);
                 watcher.watch_project(path).await?;
             } else {
-                eprintln!("プロジェクトパス、--latest、または --all オプションを指定してください");
+                eprintln!("Please specify project path, --latest, or --all option");
                 std::process::exit(1);
             }
         }

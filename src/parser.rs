@@ -51,12 +51,12 @@ impl LogParser {
         }
     }
 
-    /// ファイル全体を解析
+    /// Parse entire file
     pub fn parse_file(&mut self, path: &Path) -> Result<Vec<LogMessage>> {
         let mut file = File::open(path)
-            .with_context(|| format!("ファイル {:?} を開けません", path))?;
+            .with_context(|| format!("Cannot open file {:?}", path))?;
         
-        // 前回読んだ位置から続きを読む
+        // Read from the last position we read from
         file.seek(SeekFrom::Start(self.last_position))?;
         let reader = BufReader::new(file);
         
@@ -76,37 +76,37 @@ impl LogParser {
         Ok(messages)
     }
 
-    /// 新しいメッセージのみを取得
+    /// Get only new messages
     pub fn parse_new_messages(&mut self, path: &Path) -> Result<Vec<LogMessage>> {
         self.parse_file(path)
     }
 
-    /// 1行のJSONLエントリを解析
+    /// Parse a single JSONL entry
     fn parse_line(&self, line: &str) -> Result<LogMessage> {
         let raw: RawLogEntry = serde_json::from_str(line)
-            .context("JSONの解析に失敗しました")?;
+            .context("Failed to parse JSON")?;
 
-        // ユーザーまたはアシスタントのメッセージのみを処理
+        // Process only user or assistant messages
         if raw.entry_type != "user" && raw.entry_type != "assistant" {
-            return Err(anyhow::anyhow!("メッセージタイプではありません"));
+            return Err(anyhow::anyhow!("Not a message type"));
         }
 
-        let message = raw.message.ok_or_else(|| anyhow::anyhow!("メッセージフィールドがありません"))?;
+        let message = raw.message.ok_or_else(|| anyhow::anyhow!("Message field not found"))?;
         
         let content_msg: MessageContent = serde_json::from_value(message)
-            .context("メッセージコンテンツの解析に失敗しました")?;
+            .context("Failed to parse message content")?;
 
         let role = match content_msg.role.as_str() {
             "user" => MessageRole::User,
             "assistant" => MessageRole::Assistant,
             "system" => MessageRole::System,
-            _ => return Err(anyhow::anyhow!("未知のロール: {}", content_msg.role)),
+            _ => return Err(anyhow::anyhow!("Unknown role: {}", content_msg.role)),
         };
 
         let content = self.extract_content(&content_msg.content)?;
         
         let timestamp = DateTime::parse_from_rfc3339(&raw.timestamp)
-            .context("タイムスタンプの解析に失敗しました")?
+            .context("Failed to parse timestamp")?
             .with_timezone(&Utc);
 
         let session_id = raw.session_id.unwrap_or_else(|| "unknown".to_string());
@@ -120,7 +120,7 @@ impl LogParser {
         })
     }
 
-    /// メッセージコンテンツを抽出
+    /// Extract message content
     fn extract_content(&self, content: &Value) -> Result<String> {
         match content {
             Value::String(s) => Ok(s.clone()),
@@ -141,17 +141,17 @@ impl LogParser {
                                 "tool_use" => {
                                     if let Some(name) = obj.get("name") {
                                         if let Some(name_str) = name.as_str() {
-                                            result.push_str(&format!("[ツール使用: {}]", name_str));
+                                            result.push_str(&format!("[Tool Use: {}]", name_str));
                                             result.push('\n');
                                         }
                                     }
                                 }
                                 "tool_result" => {
-                                    result.push_str("[ツール結果]");
+                                    result.push_str("[Tool Result]");
                                     result.push('\n');
                                 }
                                 "thinking" => {
-                                    result.push_str("[思考中...]");
+                                    result.push_str("[Thinking...]");
                                     result.push('\n');
                                 }
                                 _ => {
@@ -164,11 +164,11 @@ impl LogParser {
                 }
                 Ok(result.trim_end().to_string())
             }
-            _ => Ok(format!("メッセージ内容: {:?}", content)),
+            _ => Ok(format!("Message content: {:?}", content)),
         }
     }
 
-    /// 位置をリセット（ファイル全体を再読み込み）
+    /// Reset position (reload entire file)
     pub fn reset(&mut self) {
         self.last_position = 0;
     }
