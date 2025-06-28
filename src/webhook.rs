@@ -69,20 +69,8 @@ impl WebhookSender {
     }
 
     /// Slack webhook format
-    fn format_slack(&self, message: &LogMessage, formatted_content: &str) -> Result<Value> {
-        let role_icon = match message.role {
-            crate::parser::MessageRole::User => ":bust_in_silhouette:",
-            crate::parser::MessageRole::Assistant => ":robot_face:",
-            crate::parser::MessageRole::System => ":gear:",
-        };
-
-        let role_name = match message.role {
-            crate::parser::MessageRole::User => "User",
-            crate::parser::MessageRole::Assistant => "Claude",
-            crate::parser::MessageRole::System => "System",
-        };
-
-        let text = format!("{} *{}*\n{}", role_icon, role_name, formatted_content);
+    fn format_slack(&self, _message: &LogMessage, formatted_content: &str) -> Result<Value> {
+        let text = formatted_content.to_string();
 
         Ok(json!({
             "text": text,
