@@ -393,8 +393,7 @@ impl LogFormatter {
                                 ""
                             };
                             lines.push(format!(
-                                "• {} *{}*{}{}",
-                                status_emoji, content, status_text, priority_text
+                                "• {status_emoji} *{content}*{status_text}{priority_text}"
                             ));
                         }
                     }

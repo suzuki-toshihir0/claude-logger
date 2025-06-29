@@ -162,7 +162,7 @@ impl WebhookSender {
                     };
 
                     let slack_todos = self.formatter.format_todos_for_slack(todos);
-                    return format!("📝 TodoWrite: {}", slack_todos);
+                    return format!("📝 TodoWrite: {slack_todos}");
                 }
 
                 // Handle other tools with generic format
@@ -173,9 +173,9 @@ impl WebhookSender {
                 };
                 if let Some(input) = obj.get("input") {
                     let input_str = self.format_tool_input_for_slack(input);
-                    return format!("{} {}: {}", tool_icon, tool_name, input_str);
+                    return format!("{tool_icon} {tool_name}: {input_str}");
                 } else {
-                    return format!("{} {}", tool_icon, tool_name);
+                    return format!("{tool_icon} {tool_name}");
                 }
             }
         }
