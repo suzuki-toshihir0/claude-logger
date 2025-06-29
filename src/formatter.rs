@@ -144,11 +144,12 @@ impl LogFormatter {
                                     .and_then(|n| n.as_str())
                                     .unwrap_or("Unknown");
 
-                                let simple = format!("🔧 {tool_name}");
+                                let tool_icon = if tool_name == "TodoWrite" { "📝" } else { "🔧" };
+                                let simple = format!("{tool_icon} {tool_name}");
 
                                 let detailed = if let Some(input) = obj.get("input") {
                                     let input_str = self.format_tool_input(input);
-                                    format!("🔧 {tool_name}: {input_str}")
+                                    format!("{tool_icon} {tool_name}: {input_str}")
                                 } else {
                                     simple.clone()
                                 };
@@ -193,6 +194,11 @@ impl LogFormatter {
     fn format_tool_input(&self, input: &Value) -> String {
         match input {
             Value::Object(obj) => {
+                // Handle TodoWrite specially
+                if let Some(todos) = obj.get("todos") {
+                    return self.format_todos_input(todos);
+                }
+                
                 if let Some(command) = obj.get("command") {
                     if let Some(cmd_str) = command.as_str() {
                         let truncated = cmd_str.chars().take(50).collect::<String>();
@@ -206,6 +212,173 @@ impl LogFormatter {
                 truncated + if s.len() > 50 { "..." } else { "" }
             }
             _ => "(...)".to_string(),
+        }
+    }
+
+    /// Format TodoWrite todos input
+    fn format_todos_input(&self, todos: &Value) -> String {
+        self.format_todos_for_terminal(todos)
+    }
+
+    /// Format todos for terminal display
+    fn format_todos_for_terminal(&self, todos: &Value) -> String {
+        if let Value::Array(todo_array) = todos {
+            let mut completed_count = 0;
+            let mut pending_count = 0;
+            let mut in_progress_count = 0;
+            
+            for todo in todo_array {
+                if let Some(todo_obj) = todo.as_object() {
+                    if let Some(status) = todo_obj.get("status").and_then(|s| s.as_str()) {
+                        match status {
+                            "completed" => completed_count += 1,
+                            "in_progress" => in_progress_count += 1,
+                            _ => pending_count += 1,
+                        }
+                    }
+                }
+            }
+            
+            let total = completed_count + pending_count + in_progress_count;
+            
+            match self.tool_display_mode {
+                crate::ToolDisplayMode::Simple => {
+                    let mut parts = Vec::new();
+                    if pending_count > 0 {
+                        parts.push(format!("{pending_count} pending"));
+                    }
+                    if in_progress_count > 0 {
+                        parts.push(format!("{in_progress_count} in progress"));
+                    }
+                    if completed_count > 0 {
+                        parts.push(format!("{completed_count} completed"));
+                    }
+                    
+                    if parts.is_empty() {
+                        format!("{total} tasks")
+                    } else {
+                        format!("{total} tasks ({})", parts.join(", "))
+                    }
+                }
+                crate::ToolDisplayMode::Detailed => {
+                    let mut lines = Vec::new();
+                    
+                    for todo in todo_array {
+                        if let Some(todo_obj) = todo.as_object() {
+                            let content = todo_obj.get("content")
+                                .and_then(|c| c.as_str())
+                                .unwrap_or("Unknown task");
+                            let status = todo_obj.get("status")
+                                .and_then(|s| s.as_str())
+                                .unwrap_or("pending");
+                            let priority = todo_obj.get("priority")
+                                .and_then(|p| p.as_str())
+                                .unwrap_or("medium");
+                            
+                            let checkbox = match status {
+                                "completed" => "[x]",
+                                "in_progress" => "[~]",
+                                _ => "[ ]",
+                            };
+                            
+                            let priority_icon = match priority {
+                                "high" => "🔴",
+                                "low" => "🟢",
+                                _ => "🟡",
+                            };
+                            
+                            lines.push(format!("  {} {} {} {}", checkbox, priority_icon, content, 
+                                if status == "in_progress" { "(in progress)" } else { "" }));
+                        }
+                    }
+                    
+                    format!("\n{}", lines.join("\n"))
+                }
+                _ => format!("{total} tasks"),
+            }
+        } else {
+            "(...)".to_string()
+        }
+    }
+
+    /// Format todos for Slack mrkdwn
+    pub fn format_todos_for_slack(&self, todos: &Value) -> String {
+        if let Value::Array(todo_array) = todos {
+            let mut completed_count = 0;
+            let mut pending_count = 0;
+            let mut in_progress_count = 0;
+            
+            for todo in todo_array {
+                if let Some(todo_obj) = todo.as_object() {
+                    if let Some(status) = todo_obj.get("status").and_then(|s| s.as_str()) {
+                        match status {
+                            "completed" => completed_count += 1,
+                            "in_progress" => in_progress_count += 1,
+                            _ => pending_count += 1,
+                        }
+                    }
+                }
+            }
+            
+            let total = completed_count + pending_count + in_progress_count;
+            
+            match self.tool_display_mode {
+                crate::ToolDisplayMode::Simple => {
+                    let mut parts = Vec::new();
+                    if pending_count > 0 {
+                        parts.push(format!("{pending_count} pending"));
+                    }
+                    if in_progress_count > 0 {
+                        parts.push(format!("{in_progress_count} in progress"));
+                    }
+                    if completed_count > 0 {
+                        parts.push(format!("{completed_count} completed"));
+                    }
+                    
+                    if parts.is_empty() {
+                        format!("{total} tasks")
+                    } else {
+                        format!("{total} tasks ({})", parts.join(", "))
+                    }
+                }
+                crate::ToolDisplayMode::Detailed => {
+                    let mut lines = Vec::new();
+                    
+                    for todo in todo_array {
+                        if let Some(todo_obj) = todo.as_object() {
+                            let content = todo_obj.get("content")
+                                .and_then(|c| c.as_str())
+                                .unwrap_or("Unknown task");
+                            let status = todo_obj.get("status")
+                                .and_then(|s| s.as_str())
+                                .unwrap_or("pending");
+                            let priority = todo_obj.get("priority")
+                                .and_then(|p| p.as_str())
+                                .unwrap_or("medium");
+                            
+                            let status_emoji = match status {
+                                "completed" => "✅",
+                                "in_progress" => "⚠️",
+                                _ => "⭕",
+                            };
+                            
+                            let priority_text = match priority {
+                                "high" => " (high priority)",
+                                "low" => " (low priority)",
+                                _ => " (medium priority)",
+                            };
+                            
+                            let status_text = if status == "in_progress" { " (in progress)" } else { "" };
+                            lines.push(format!("• {} *{}*{}{}", status_emoji, content, status_text, priority_text));
+                        }
+                    }
+                    
+                    format!("\n{}", lines.join("\n"))
+                }
+                _ => format!("{total} tasks"),
+            }
+        } else {
+            "(...)".to_string()
         }
     }
 
@@ -311,5 +484,68 @@ mod tests {
 
         let result = formatter.format_message(&message).unwrap();
         assert!(result.contains("test-ses"));
+    }
+
+    #[test]
+    fn test_todowrite_simple_format() {
+        let formatter = LogFormatter::new().with_tool_display_mode(crate::ToolDisplayMode::Simple);
+        
+        let todos_json = serde_json::json!([
+            {
+                "id": "1",
+                "content": "Complete task 1",
+                "status": "completed",
+                "priority": "high"
+            },
+            {
+                "id": "2", 
+                "content": "Work on task 2",
+                "status": "in_progress",
+                "priority": "medium"
+            },
+            {
+                "id": "3",
+                "content": "Start task 3", 
+                "status": "pending",
+                "priority": "low"
+            }
+        ]);
+
+        let result = formatter.format_todos_input(&todos_json);
+        assert!(result.contains("3 tasks"));
+        assert!(result.contains("1 pending"));
+        assert!(result.contains("1 in progress"));
+        assert!(result.contains("1 completed"));
+    }
+
+    #[test]
+    fn test_todowrite_detailed_format() {
+        let formatter = LogFormatter::new().with_tool_display_mode(crate::ToolDisplayMode::Detailed);
+        
+        let todos_json = serde_json::json!([
+            {
+                "id": "1",
+                "content": "Complete task 1",
+                "status": "completed", 
+                "priority": "high"
+            },
+            {
+                "id": "2",
+                "content": "Work on task 2",
+                "status": "in_progress",
+                "priority": "medium"
+            },
+            {
+                "id": "3",
+                "content": "Start task 3",
+                "status": "pending",
+                "priority": "low"
+            }
+        ]);
+
+        let result = formatter.format_todos_input(&todos_json);
+        assert!(result.contains("\n  [x] 🔴 Complete task 1"));
+        assert!(result.contains("\n  [~] 🟡 Work on task 2 (in progress)"));
+        assert!(result.contains("\n  [ ] 🟢 Start task 3"));
     }
 }
