@@ -4,8 +4,8 @@ use serde_json::{json, Value};
 use std::time::Duration;
 use url::Url;
 
-use crate::parser::LogMessage;
 use crate::formatter::LogFormatter;
+use crate::parser::LogMessage;
 use crate::WebhookFormat;
 
 #[derive(Debug)]
@@ -28,8 +28,8 @@ impl WebhookSender {
             .build()
             .context("Failed to create HTTP client")?;
 
-        let formatter = LogFormatter::new()
-            .with_tool_display_mode(crate::ToolDisplayMode::Detailed);
+        let formatter =
+            LogFormatter::new().with_tool_display_mode(crate::ToolDisplayMode::Detailed);
 
         Ok(Self {
             client,
@@ -141,22 +141,36 @@ impl WebhookSender {
         };
 
         for item in arr {
-            let Some(obj) = item.as_object() else { continue };
-            let Some(content_type) = obj.get("type").and_then(|t| t.as_str()) else { continue };
+            let Some(obj) = item.as_object() else {
+                continue;
+            };
+            let Some(content_type) = obj.get("type").and_then(|t| t.as_str()) else {
+                continue;
+            };
 
             if content_type == "tool_use" {
-                let Some(tool_name) = obj.get("name").and_then(|n| n.as_str()) else { continue };
-                
+                let Some(tool_name) = obj.get("name").and_then(|n| n.as_str()) else {
+                    continue;
+                };
+
                 if tool_name == "TodoWrite" {
-                    let Some(input) = obj.get("input") else { continue };
-                    let Some(todos) = input.get("todos") else { continue };
-                    
+                    let Some(input) = obj.get("input") else {
+                        continue;
+                    };
+                    let Some(todos) = input.get("todos") else {
+                        continue;
+                    };
+
                     let slack_todos = self.formatter.format_todos_for_slack(todos);
                     return format!("📝 TodoWrite: {}", slack_todos);
                 }
-                
+
                 // Handle other tools with generic format
-                let tool_icon = if tool_name == "TodoWrite" { "📝" } else { "🔧" };
+                let tool_icon = if tool_name == "TodoWrite" {
+                    "📝"
+                } else {
+                    "🔧"
+                };
                 if let Some(input) = obj.get("input") {
                     let input_str = self.format_tool_input_for_slack(input);
                     return format!("{} {}: {}", tool_icon, tool_name, input_str);
