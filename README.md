@@ -85,6 +85,6 @@ Messages are displayed with timestamps and role indicators:
 This is the most common issue and usually occurs when claude-logger is started before Claude Code.
 
 **Solution**:
-1. **Start Claude Code first**: Run `claude code` in your project directory
+1. **Start Claude Code first**: Run `claude` in your project directory
 2. **Then start claude-logger**: Run `claude-logger watch --latest` in another terminal
 
