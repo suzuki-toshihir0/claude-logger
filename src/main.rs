@@ -43,13 +43,17 @@ enum Commands {
         #[arg(short, long)]
         project_path: Option<PathBuf>,
 
-        /// Automatically select the latest project
+        /// Automatically select the latest session
         #[arg(short, long)]
         latest: bool,
 
         /// Monitor all projects
         #[arg(short, long)]
         all: bool,
+
+        /// Path to specific session file to monitor
+        #[arg(long)]
+        session_file: Option<PathBuf>,
 
         /// Tool display mode: none, simple, or detailed
         #[arg(long, default_value = "simple")]
@@ -80,6 +84,7 @@ async fn main() -> Result<()> {
             project_path,
             latest,
             all,
+            session_file,
             tool_display,
             webhook_url,
             webhook_format,
@@ -93,14 +98,22 @@ async fn main() -> Result<()> {
             if *all {
                 println!("Monitoring all projects...");
                 watcher.watch_all().await?;
+            } else if let Some(session_path) = session_file {
+                println!("Monitoring session file {session_path:?}...");
+                watcher.watch_session(session_path).await?;
             } else if *latest {
-                println!("Monitoring latest project...");
-                watcher.watch_latest().await?;
+                if let Some(project_path) = project_path {
+                    println!("Monitoring latest session in project {project_path:?}...");
+                    watcher.watch_latest_session_in_project(project_path).await?;
+                } else {
+                    println!("Monitoring latest session across all projects...");
+                    watcher.watch_latest_session().await?;
+                }
             } else if let Some(path) = project_path {
                 println!("Monitoring project {path:?}...");
                 watcher.watch_project(path).await?;
             } else {
-                eprintln!("Please specify project path, --latest, or --all option");
+                eprintln!("Please specify --session-file, --project-path, --latest, or --all option");
                 std::process::exit(1);
             }
         }
