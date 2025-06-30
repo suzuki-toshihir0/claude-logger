@@ -1,6 +1,6 @@
 [package]
 name = "claude-logger"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 authors = ["Toshihiro Suzuki"]
 description = "Real-time monitoring tool for Claude Code conversations with webhook support"
