@@ -145,6 +145,29 @@ cargo install --path .
 cargo run -- watch --latest
 ```
 
+## Release Process
+
+### Standard Workflow
+
+1. **Create Release PR**
+   ```bash
+   gh workflow run "Create Release PR" --field version=patch
+   ```
+
+2. **Merge PR** → Review and merge the generated PR
+
+3. **Create Tag** → Tag push triggers automatic release
+   ```bash
+   git checkout main && git pull
+   git tag v0.1.4 && git push origin v0.1.4
+   ```
+
+### Prerequisites
+- Enable "Allow GitHub Actions to create and approve pull requests" in repository settings
+
+### Manual Alternative
+Manually edit Cargo.toml → create PR → merge → create tag
+
 ## Project Dependencies
 
 - **notify**: Cross-platform file watching (inotify on Linux)
