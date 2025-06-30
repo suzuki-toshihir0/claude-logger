@@ -1,6 +1,5 @@
 # cargo-release configuration
 
-[package]
 # Don't publish to crates.io when using PR workflow
 # Publishing will be handled by the release.yml workflow after tag push
 publish = false
@@ -13,14 +12,8 @@ tag = false
 # PR creation will handle the push
 push = false
 
-# Metadata for release
-[package.metadata.release]
 # Tag format
 tag-name = "v{{version}}"
 
-# Disable confirmation prompts in CI
-no-dev-version = true
+# Release commit message
 pre-release-commit-message = "Release {{crate_name}} v{{version}}"
-
-# Don't create dev version commits in PR workflow
-post-release-commit-message = false
