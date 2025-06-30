@@ -18,6 +18,12 @@ cargo build --release
 # Run tests
 cargo test
 
+# Run specific test
+cargo test test_name
+
+# Run tests with output
+cargo test -- --nocapture
+
 # Run with debug logging
 RUST_LOG=debug cargo run -- watch --latest
 
@@ -30,7 +36,7 @@ cargo fmt
 # Check compilation without building
 cargo check
 
-# Publish to crates.io
+# Publish to crates.io (requires ownership)
 cargo publish
 ```
 
@@ -124,6 +130,7 @@ cargo test format_slack
 1. **Duplicate message output**: Resolved by timestamp filtering in `process_jsonl_file`
 2. **Webhook spam on startup**: Use default `--include-existing=false`
 3. **Tool output noise**: Adjust with `--tool-display none`
+4. **Wrong project being monitored**: Start Claude Code first, then claude-logger
 
 ## Installation & Distribution
 
@@ -133,7 +140,19 @@ cargo install claude-logger
 
 # Install from local source
 cargo install --path .
+
+# Run directly without installation
+cargo run -- watch --latest
 ```
+
+## Project Dependencies
+
+- **notify**: Cross-platform file watching (inotify on Linux)
+- **tokio**: Async runtime for concurrent operations
+- **reqwest**: HTTP client for webhook integration
+- **clap**: CLI argument parsing
+- **serde/serde_json**: JSON serialization/deserialization
+- **chrono**: Timestamp handling
 
 ## Future Extension Points
 
