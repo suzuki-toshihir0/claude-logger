@@ -1,3 +1,6 @@
+> [\!IMPORTANT]
+> **This project is archived.** Development has moved to [aloud-code](https://github.com/suzuki-toshihir0/aloud-code), a Claude Code plugin that requires no separate installation. Please migrate to aloud-code.
+
 # Claude Logger
 
 ![Rust CI](https://github.com/suzuki-toshihir0/claude-logger/workflows/Rust%20CI/badge.svg)
@@ -87,4 +90,3 @@ This is the most common issue and usually occurs when claude-logger is started b
 **Solution**:
 1. **Start Claude Code first**: Run `claude` in your project directory
 2. **Then start claude-logger**: Run `claude-logger watch --latest` in another terminal
-
